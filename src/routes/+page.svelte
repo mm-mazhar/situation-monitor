@@ -1,52 +1,52 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { Header, Dashboard } from '$lib/components/layout';
-	import { SettingsModal, MonitorFormModal, OnboardingModal } from '$lib/components/modals';
+	import type { Contract, Layoff, Prediction, WhaleTransaction } from '$lib/api';
 	import {
-		NewsPanel,
-		MarketsPanel,
-		HeatmapPanel,
-		CommoditiesPanel,
-		CryptoPanel,
-		MainCharPanel,
-		CorrelationPanel,
-		NarrativePanel,
-		MonitorsPanel,
-		MapPanel,
-		WhalePanel,
-		PolymarketPanel,
-		ContractsPanel,
-		LayoffsPanel,
-		IntelPanel,
-		SituationPanel,
-		WorldLeadersPanel,
-		PrinterPanel,
-		FedPanel
-	} from '$lib/components/panels';
-	import {
-		news,
-		markets,
-		monitors,
-		settings,
-		refresh,
-		allNewsItems,
-		fedIndicators,
-		fedNews
-	} from '$lib/stores';
-	import {
-		fetchAllNews,
 		fetchAllMarkets,
-		fetchPolymarket,
-		fetchWhaleTransactions,
+		fetchAllNews,
+		fetchFedIndicators,
+		fetchFedNews,
 		fetchGovContracts,
 		fetchLayoffs,
-		fetchWorldLeaders,
-		fetchFedIndicators,
-		fetchFedNews
+		fetchPolymarket,
+		fetchWhaleTransactions,
+		fetchWorldLeaders
 	} from '$lib/api';
-	import type { Prediction, WhaleTransaction, Contract, Layoff } from '$lib/api';
-	import type { CustomMonitor, WorldLeader } from '$lib/types';
+	import { Dashboard, Header } from '$lib/components/layout';
+	import { MonitorFormModal, OnboardingModal, SettingsModal } from '$lib/components/modals';
+	import {
+		CommoditiesPanel,
+		ContractsPanel,
+		CorrelationPanel,
+		CryptoPanel,
+		FedPanel,
+		GlobePanel,
+		HeatmapPanel,
+		IntelPanel,
+		LayoffsPanel,
+		MainCharPanel,
+		MarketsPanel,
+		MonitorsPanel,
+		NarrativePanel,
+		NewsPanel,
+		PolymarketPanel,
+		PrinterPanel,
+		SituationPanel,
+		WhalePanel,
+		WorldLeadersPanel
+	} from '$lib/components/panels';
 	import type { PanelId } from '$lib/config';
+	import {
+		allNewsItems,
+		fedIndicators,
+		fedNews,
+		markets,
+		monitors,
+		news,
+		refresh,
+		settings
+	} from '$lib/stores';
+	import type { CustomMonitor, WorldLeader } from '$lib/types';
+	import { onMount } from 'svelte';
 
 	// Modal state
 	let settingsOpen = $state(false);
@@ -186,6 +186,8 @@
 
 	// Initial load
 	onMount(() => {
+		settings.init();
+
 		// Check if first visit
 		if (!settings.isOnboardingComplete()) {
 			onboardingOpen = true;
@@ -229,7 +231,7 @@
 			<!-- Map Panel - Full width -->
 			{#if isPanelVisible('map')}
 				<div class="panel-slot map-slot">
-					<MapPanel monitors={$monitors.monitors} />
+					<GlobePanel monitors={$monitors.monitors} />
 				</div>
 			{/if}
 

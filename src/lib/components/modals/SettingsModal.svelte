@@ -1,7 +1,8 @@
 <script lang="ts">
-	import Modal from './Modal.svelte';
-	import { settings } from '$lib/stores';
 	import { PANELS, type PanelId } from '$lib/config';
+	import { settings } from '$lib/stores';
+	import Modal from './Modal.svelte';
+	
 
 	interface Props {
 		open: boolean;
@@ -18,10 +19,23 @@
 	function handleResetPanels() {
 		settings.reset();
 	}
+
+	function handleToggleTheme() {
+		settings.toggleTheme();
+	}
 </script>
 
 <Modal {open} title="Settings" {onClose}>
 	<div class="settings-sections">
+		<section class="settings-section">
+			<h3 class="section-title">Appearance</h3>
+			<div class="theme-toggle-row">
+				<span class="text-sm text-text-primary">Interface Theme</span>
+				<button class="theme-btn" onclick={handleToggleTheme}>
+            		{$settings.theme === 'dark' ? '☀️ Light Theme' : '🌙 Dark Theme'}
+        		</button>
+			</div>
+		</section>
 		<section class="settings-section">
 			<h3 class="section-title">Enabled Panels</h3>
 			<p class="section-desc">Toggle panels on/off to customize your dashboard</p>
@@ -163,4 +177,28 @@
 	.reset-btn:hover {
 		background: rgba(255, 68, 68, 0.2);
 	}
+	.theme-toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.theme-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.3rem 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.2s;
+}
+
+.theme-btn:hover {
+    border-color: var(--accent);
+}
 </style>
