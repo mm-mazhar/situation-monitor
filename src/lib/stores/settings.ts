@@ -18,7 +18,8 @@ const STORAGE_KEYS = {
 	panels: 'situationMonitorPanels',
 	order: 'panelOrder',
 	sizes: 'panelSizes',
-	theme: 'theme'
+	theme: 'theme',
+	tempUnit: 'temperatureUnit'
 } as const;
 
 // Types
@@ -31,6 +32,7 @@ export interface PanelSettings {
 export interface SettingsState extends PanelSettings {
 	initialized: boolean;
 	theme: 'dark' | 'light';
+	tempUnit: 'c' | 'f';
 }
 
 // Default settings
@@ -42,6 +44,7 @@ function getDefaultSettings(): SettingsState {
 		order: allPanelIds,
 		sizes: {} as Record<PanelId, { width?: number; height?: number }>,
 		theme: 'dark',
+		tempUnit: 'f',
 		initialized: false
 	};
 }
@@ -55,12 +58,14 @@ function loadFromStorage(): Partial<SettingsState> {
 		const order = localStorage.getItem(STORAGE_KEYS.order);
 		const sizes = localStorage.getItem(STORAGE_KEYS.sizes);
 		const theme = localStorage.getItem(STORAGE_KEYS.theme);
+		const tempUnit = localStorage.getItem(STORAGE_KEYS.tempUnit);
 
 		return {
 			enabled: panels ? JSON.parse(panels) : undefined,
 			order: order ? JSON.parse(order) : undefined,
 			sizes: sizes ? JSON.parse(sizes) : undefined,
-			theme: (theme === 'light' ? 'light' : 'dark')
+			theme: theme === 'light' ? 'light' : 'dark',
+			tempUnit: tempUnit === 'c' ? 'c' : 'f'
 		};
 	} catch (e) {
 		console.warn('Failed to load settings from localStorage:', e);
@@ -122,6 +127,14 @@ function createSettingsStore() {
 					localStorage.setItem(STORAGE_KEYS.theme, newTheme);
 				}
 				return { ...state, theme: newTheme };
+			});
+		},
+
+		setTempUnit(unit: 'c' | 'f') {
+			update((state) => {
+				const next = unit === 'c' ? 'c' : 'f';
+				saveToStorage('tempUnit', next);
+				return { ...state, tempUnit: next };
 			});
 		},
 

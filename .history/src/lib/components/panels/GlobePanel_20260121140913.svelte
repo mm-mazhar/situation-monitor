@@ -16,23 +16,23 @@
 	import type { CustomMonitor } from '$lib/types';
 	import { onMount } from 'svelte';
 
-	interface GlobeControls {
-		autoRotate: boolean;
-		autoRotateSpeed: number;
-	}
+interface GlobeControls {
+	autoRotate: boolean;
+	autoRotateSpeed: number;
+}
 
-	interface GlobeInstance {
-		pointOfView(view: { lat: number; lng: number; altitude: number }, ms?: number): void;
-		width(width: number): void;
-		height(height: number): void;
-		pointsData(data: unknown[]): GlobeInstance;
-		labelsData(data: unknown[]): GlobeInstance;
-		polygonsData(data: unknown[]): GlobeInstance;
-		controls(): GlobeControls;
-		_destructor(): void;
-	}
+interface GlobeInstance {
+	pointOfView(view: { lat: number; lng: number; altitude: number }, ms?: number): void;
+	width(width: number): void;
+	height(height: number): void;
+	pointsData(data: unknown[]): GlobeInstance;
+	labelsData(data: unknown[]): GlobeInstance;
+	polygonsData(data: unknown[]): GlobeInstance;
+	controls(): GlobeControls;
+	_destructor(): void;
+}
 
-	interface Props {
+interface Props {
 		monitors?: CustomMonitor[];
 		loading?: boolean;
 		error?: string | null;
@@ -44,7 +44,7 @@
 	let container: HTMLElement;
 	let myGlobe: GlobeInstance | null = null;
 
-	const INITIAL_VIEW = { lat: 30, lng: 40, altitude: 1.0 };
+	const INITIAL_VIEW = { lat: 30, lng: 50, altitude: 0.9 };
 
 	interface CityConfig {
 		id: string;
@@ -80,7 +80,8 @@
 		{ id: 'berlin', name: 'Berlin', lat: 52.52, lon: 13.405 },
 		{ id: 'lon', name: 'London', lat: 51.5074, lon: -0.1278 },
 		{ id: 'nyc', name: 'New York', lat: 40.7128, lon: -74.006 },
-		{ id: 'la', name: 'Los Angeles', lat: 34.0522, lon: -118.2437 }
+		{ id: 'la', name: 'Los Angeles', lat: 34.0522, lon: -118.2437 },
+		// { id: 'sp', name: 'Sao Paulo', lat: -23.55, lon: -46.6333 }
 	];
 
 	const weatherCache: Record<string, CacheEntry<WeatherResult>> = {};
@@ -342,7 +343,6 @@
 				<button class="control-btn" onclick={resetView}>⟲ Reset View</button>
 			</div>
 
-			<!-- VERTICAL LEGEND -->
 			<div class="globe-legend">
 				<div class="legend-item"><span class="dot critical"></span> Critical</div>
 				<div class="legend-item"><span class="dot conflict"></span> Conflict Zone</div>
@@ -355,7 +355,6 @@
 		</div>
 
 		<div class="globe-mini-dashboard">
-			<!-- ROW 1: WEATHER -->
 			<div class="mini-row">
 				<div class="mini-title">Time & Weather</div>
 				{#if weatherError}
@@ -396,7 +395,6 @@
 				{/if}
 			</div>
 
-			<!-- ROW 2: SECTOR HEATMAP (Stacked) -->
 			<div class="mini-row">
 				<div class="mini-title">Sector Heatmap</div>
 				{#if miniError}
@@ -414,7 +412,6 @@
 				{/if}
 			</div>
 
-			<!-- ROW 3: MARKETS (Side-by-Side) -->
 			<div class="mini-row">
 				<div class="mini-title">Markets</div>
 				{#if marketError}
@@ -424,8 +421,7 @@
 				{:else if marketItems.length === 0}
 					<div class="mini-state">No market data</div>
 				{:else}
-					<!-- Added 'horizontal-layout' class -->
-					<div class="mini-heatmap-row horizontal-layout">
+					<div class="mini-heatmap-row">
 						{#each marketItems as item (item.symbol)}
 							<HeatmapCell
 								sector={{
@@ -441,7 +437,6 @@
 				{/if}
 			</div>
 
-			<!-- ROW 4: CRYPTO (Side-by-Side) -->
 			<div class="mini-row">
 				<div class="mini-title">Crypto</div>
 				{#if cryptoError}
@@ -451,8 +446,7 @@
 				{:else if cryptoItems.length === 0}
 					<div class="mini-state">No crypto data</div>
 				{:else}
-					<!-- Added 'horizontal-layout' class -->
-					<div class="mini-heatmap-row horizontal-layout">
+					<div class="mini-heatmap-row">
 						{#each cryptoItems as coin (coin.id)}
 							<HeatmapCell
 								sector={{
@@ -468,7 +462,6 @@
 				{/if}
 			</div>
 
-			<!-- ROW 5: COMMODITIES (Side-by-Side) -->
 			<div class="mini-row">
 				<div class="mini-title">Commodities / VIX</div>
 				{#if commodityError}
@@ -478,8 +471,7 @@
 				{:else if commodityItems.length === 0}
 					<div class="mini-state">No commodities data</div>
 				{:else}
-					<!-- Added 'horizontal-layout' class -->
-					<div class="mini-heatmap-row horizontal-layout">
+					<div class="mini-heatmap-row">
 						{#each commodityItems as item (item.symbol)}
 							<HeatmapCell
 								sector={{
@@ -495,7 +487,6 @@
 				{/if}
 			</div>
 
-			<!-- ROW 6: LAYOFFS -->
 			<div class="mini-row">
 				<div class="mini-title">Layoffs Tracker</div>
 				{#if !layoffs || layoffs.length === 0}
@@ -543,17 +534,18 @@
 		height: 100%;
 	}
 
-	/* --- LEGEND --- */
+	/* --- UPDATED LEGEND STYLING --- */
 	.globe-legend {
 		position: absolute;
 		bottom: 10px;
 		right: 10px;
-		background: rgba(0, 0, 0, 0.75);
+		background: rgba(0, 0, 0, 0.75); /* Slightly darker for contrast */
 		padding: 6px 8px;
 		border-radius: 4px;
-		font-size: 0.6rem;
+		font-size: 0.6rem; /* Smaller font as requested */
 		color: #ccc;
 		pointer-events: none;
+		/* Reverted to vertical stack */
 		display: flex;
 		flex-direction: column;
 		gap: 3px; 
@@ -589,7 +581,7 @@
 	}
 
 	.dot {
-		width: 6px;
+		width: 6px; /* Smaller dots to match font */
 		height: 6px;
 		border-radius: 50%;
 		display: inline-block;
@@ -633,7 +625,7 @@
 		flex-shrink: 0;
 	}
 
-	/* --- ROW SCROLL/WRAP CONFIG --- */
+	/* --- ROW STYLING --- */
 	.mini-weather-row,
 	.mini-heatmap-row,
 	.mini-layoffs-row {
@@ -642,73 +634,62 @@
 		gap: 0.25rem;
 		overflow-x: auto; 
 		padding-bottom: 0.1rem;
-		scrollbar-width: none;
+		scrollbar-width: none; /* Hide scrollbar Firefox */
 	}
+	/* Hide scrollbar Chrome/Safari */
 	.mini-weather-row::-webkit-scrollbar,
 	.mini-heatmap-row::-webkit-scrollbar,
 	.mini-layoffs-row::-webkit-scrollbar {
 		display: none;
 	}
 
-	/* --- 1. SHARED STRUCTURE (Height & Layout) --- */
-	.mini-weather-cell,
-	.mini-heatmap-row :global(.heatmap-cell),
-	.mini-layoff-cell {
-		height: 44px; /* Consistent height */
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		border-radius: 4px;
-	}
-
-	/* --- 2. BACKGROUNDS FOR NON-COLORED CELLS ONLY --- */
-	/* We apply the gray background ONLY to weather and layoffs.
-	   We DO NOT apply it to heatmap-cell, so it keeps its green/red color. */
-	.mini-weather-cell,
-	.mini-layoff-cell {
-		background: rgba(255, 255, 255, 0.02);
-		border: 1px solid var(--border);
-	}
-
-	/* --- WEATHER SPECIFICS --- */
+	/* --- WEATHER CELLS --- */
 	.mini-weather-cell {
 		flex: 1 0 110px;
 		min-width: 110px;
-		padding: 0 0.5rem;
+		padding: 0.25rem 0.5rem;
+		border-radius: 4px;
+		background: rgba(255, 255, 255, 0.02);
+		border: 1px solid var(--border);
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
 		gap: 0.15rem;
 		font-size: 0.65rem;
 	}
 
-	/* --- HEATMAP SPECIFICS --- */
-	/* Default (Stacked) */
+	/* --- HEATMAP/MARKET/CRYPTO CELLS --- */
 	.mini-heatmap-row :global(.heatmap-cell) {
+		/* UPDATED: Reduced min-width to 85px to fit 12 sectors on one line */
 		flex: 1 1 85px; 
 		min-width: 85px;
-		/* Background is handled by the component (green/red classes) */
+		height: auto;
+		min-height: 42px;
 	}
 
-	/* Horizontal Layout Override (Markets/Crypto) */
-	.horizontal-layout :global(.heatmap-cell) {
-		flex-direction: row !important;
-		justify-content: space-between !important;
-		align-items: center !important;
-		padding: 0 1rem !important;
-	}
-	
-	.horizontal-layout :global(.sector-change) {
-		margin-top: 0 !important;
+	.mini-heatmap-row :global(.sector-name) {
+		font-size: 0.7rem;
 	}
 
-	/* --- LAYOFFS SPECIFICS --- */
+	.mini-heatmap-row :global(.sector-change) {
+		font-size: 0.65rem;
+	}
+
+	/* --- LAYOFF CELLS --- */
 	.mini-layoff-cell {
 		flex: 1 1 140px; 
 		min-width: 140px;
-		padding: 0 0.5rem;
+		border-radius: 4px;
+		background: rgba(255, 255, 255, 0.02);
+		border: 1px solid var(--border);
+		padding: 0.35rem 0.5rem;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
 		gap: 0.1rem;
 		font-size: 0.65rem;
 	}
 
-	/* Text Styles */
 	.city-header, .city-meta, .mini-layoff-header {
 		display: flex;
 		justify-content: space-between;
@@ -779,11 +760,12 @@
 			justify-content: center;
 		}
 
+		/* UPDATED: Forced nowrap to keep single rows */
 		.mini-weather-row,
 		.mini-heatmap-row,
 		.mini-layoffs-row {
 			flex-wrap: nowrap; 
-			overflow-x: auto;
+			overflow-x: auto; /* Enable scroll if screen is too small */
 		}
 	}
 </style>

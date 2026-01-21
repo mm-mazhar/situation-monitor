@@ -14,17 +14,12 @@
 	import { Dashboard, Header } from '$lib/components/layout';
 	import { MonitorFormModal, OnboardingModal, SettingsModal } from '$lib/components/modals';
 	import {
-		CommoditiesPanel,
 		ContractsPanel,
 		CorrelationPanel,
-		CryptoPanel,
 		FedPanel,
 		GlobePanel,
-		HeatmapPanel,
 		IntelPanel,
-		LayoffsPanel,
 		MainCharPanel,
-		MarketsPanel,
 		MonitorsPanel,
 		NarrativePanel,
 		NewsPanel,
@@ -231,7 +226,7 @@
 			<!-- Map Panel - Full width -->
 			{#if isPanelVisible('map')}
 				<div class="panel-slot map-slot">
-					<GlobePanel monitors={$monitors.monitors} />
+					<GlobePanel monitors={$monitors.monitors} {layoffs} />
 				</div>
 			{/if}
 
@@ -266,30 +261,7 @@
 				</div>
 			{/if}
 
-			<!-- Markets Panels -->
-			{#if isPanelVisible('markets')}
-				<div class="panel-slot">
-					<MarketsPanel />
-				</div>
-			{/if}
-
-			{#if isPanelVisible('heatmap')}
-				<div class="panel-slot">
-					<HeatmapPanel />
-				</div>
-			{/if}
-
-			{#if isPanelVisible('commodities')}
-				<div class="panel-slot">
-					<CommoditiesPanel />
-				</div>
-			{/if}
-
-			{#if isPanelVisible('crypto')}
-				<div class="panel-slot">
-					<CryptoPanel />
-				</div>
-			{/if}
+			<!-- Markets data is now shown in the Globe mini dashboard (Time & Weather row) -->
 
 			<!-- Analysis Panels -->
 			{#if isPanelVisible('mainchar')}
@@ -414,12 +386,6 @@
 			{#if isPanelVisible('contracts')}
 				<div class="panel-slot">
 					<ContractsPanel {contracts} />
-				</div>
-			{/if}
-
-			{#if isPanelVisible('layoffs')}
-				<div class="panel-slot">
-					<LayoffsPanel {layoffs} />
 				</div>
 			{/if}
 
