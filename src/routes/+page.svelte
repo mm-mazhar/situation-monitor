@@ -1,52 +1,47 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { Header, Dashboard } from '$lib/components/layout';
-	import { SettingsModal, MonitorFormModal, OnboardingModal } from '$lib/components/modals';
+	import type { Contract, Layoff, Prediction, WhaleTransaction } from '$lib/api';
 	import {
-		NewsPanel,
-		MarketsPanel,
-		HeatmapPanel,
-		CommoditiesPanel,
-		CryptoPanel,
-		MainCharPanel,
-		CorrelationPanel,
-		NarrativePanel,
-		MonitorsPanel,
-		MapPanel,
-		WhalePanel,
-		PolymarketPanel,
-		ContractsPanel,
-		LayoffsPanel,
-		IntelPanel,
-		SituationPanel,
-		WorldLeadersPanel,
-		PrinterPanel,
-		FedPanel
-	} from '$lib/components/panels';
-	import {
-		news,
-		markets,
-		monitors,
-		settings,
-		refresh,
-		allNewsItems,
-		fedIndicators,
-		fedNews
-	} from '$lib/stores';
-	import {
-		fetchAllNews,
 		fetchAllMarkets,
-		fetchPolymarket,
-		fetchWhaleTransactions,
+		fetchAllNews,
+		fetchFedIndicators,
+		fetchFedNews,
 		fetchGovContracts,
 		fetchLayoffs,
-		fetchWorldLeaders,
-		fetchFedIndicators,
-		fetchFedNews
+		fetchPolymarket,
+		fetchWhaleTransactions,
+		fetchWorldLeaders
 	} from '$lib/api';
-	import type { Prediction, WhaleTransaction, Contract, Layoff } from '$lib/api';
-	import type { CustomMonitor, WorldLeader } from '$lib/types';
+	import { Dashboard, Header } from '$lib/components/layout';
+	import { MonitorFormModal, OnboardingModal, SettingsModal } from '$lib/components/modals';
+	import {
+		ContractsPanel,
+		CorrelationPanel,
+		FedPanel,
+		GlobePanel,
+		IntelPanel,
+		MainCharPanel,
+		MonitorsPanel,
+		NarrativePanel,
+		NewsPanel,
+		PolymarketPanel,
+		PrinterPanel,
+		SituationPanel,
+		WhalePanel,
+		WorldLeadersPanel
+	} from '$lib/components/panels';
 	import type { PanelId } from '$lib/config';
+	import {
+		allNewsItems,
+		fedIndicators,
+		fedNews,
+		markets,
+		monitors,
+		news,
+		refresh,
+		settings
+	} from '$lib/stores';
+	import type { CustomMonitor, WorldLeader } from '$lib/types';
+	import { onMount } from 'svelte';
 
 	// Modal state
 	let settingsOpen = $state(false);
@@ -186,6 +181,8 @@
 
 	// Initial load
 	onMount(() => {
+		settings.init();
+
 		// Check if first visit
 		if (!settings.isOnboardingComplete()) {
 			onboardingOpen = true;
@@ -229,7 +226,7 @@
 			<!-- Map Panel - Full width -->
 			{#if isPanelVisible('map')}
 				<div class="panel-slot map-slot">
-					<MapPanel monitors={$monitors.monitors} />
+					<GlobePanel monitors={$monitors.monitors} {layoffs} />
 				</div>
 			{/if}
 
@@ -264,30 +261,7 @@
 				</div>
 			{/if}
 
-			<!-- Markets Panels -->
-			{#if isPanelVisible('markets')}
-				<div class="panel-slot">
-					<MarketsPanel />
-				</div>
-			{/if}
-
-			{#if isPanelVisible('heatmap')}
-				<div class="panel-slot">
-					<HeatmapPanel />
-				</div>
-			{/if}
-
-			{#if isPanelVisible('commodities')}
-				<div class="panel-slot">
-					<CommoditiesPanel />
-				</div>
-			{/if}
-
-			{#if isPanelVisible('crypto')}
-				<div class="panel-slot">
-					<CryptoPanel />
-				</div>
-			{/if}
+			<!-- Markets data is now shown in the Globe mini dashboard (Time & Weather row) -->
 
 			<!-- Analysis Panels -->
 			{#if isPanelVisible('mainchar')}
@@ -412,12 +386,6 @@
 			{#if isPanelVisible('contracts')}
 				<div class="panel-slot">
 					<ContractsPanel {contracts} />
-				</div>
-			{/if}
-
-			{#if isPanelVisible('layoffs')}
-				<div class="panel-slot">
-					<LayoffsPanel {layoffs} />
 				</div>
 			{/if}
 
