@@ -12,6 +12,7 @@
 		fetchWhaleTransactions,
 		fetchWorldLeaders,
 	} from '$lib/api';
+	import BreakingNews from '$lib/components/common/BreakingNews.svelte';
 	import { Dashboard, Header } from '$lib/components/layout';
 	import { MonitorFormModal, OnboardingModal, SettingsModal } from '$lib/components/modals';
 	import {
@@ -233,6 +234,7 @@
 
 <div class="app">
 	<Header onSettingsClick={() => (settingsOpen = true)} />
+	<BreakingNews />
 
 	<main class="main-content">
 		<Dashboard>
@@ -449,7 +451,7 @@
 
 	.main-content {
 		flex: 1;
-		padding: 0.5rem;
+		padding: 0.1rem;
 		overflow-y: auto;
 	}
 

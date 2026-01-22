@@ -1099,6 +1099,23 @@ function getFedColor(type: string, value: number | null): string {
 		color: #ffffff;
 	}
 
+	:global([data-theme='light']) .mini-analysis-cell {
+		color: #111827;
+	}
+
+	:global([data-theme='light']) .mini-fed-label {
+		color: #111827;
+	}
+
+	:global([data-theme='light']) .mini-fed-value {
+		color: #111827;
+	}
+
+	:global([data-theme='light']) .mini-fed-tag {
+		background: rgba(255, 255, 255, 0.8);
+		color: #111827;
+	}
+
 	@media (max-width: 768px) {
 		.mini-row {
 			flex-direction: column;
