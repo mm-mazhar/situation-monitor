@@ -6,6 +6,9 @@
 | :---: | :---: | :---: | :---: |
 | ![License](https://img.shields.io/badge/license-MIT-blue.svg) | ![Svelte](https://img.shields.io/badge/svelte-%23f1413d.svg?style=flat&logo=svelte&logoColor=white) | ![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=flat&logo=tailwind-css&logoColor=white) | ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=flat&logo=typescript&logoColor=white) |
 
+
+![Situation Monitor Screenshot](https://i.imgur.com/sCYKoAn.png)
+
 ## 🚀 Overview
 
 **Situation Monitor** is an open-source intelligence dashboard designed to aggregate and visualize complex data streams. It replaces traditional 2D maps with an interactive **3D Globe** and provides a "command center" view of the world.
