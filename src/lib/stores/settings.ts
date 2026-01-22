@@ -40,7 +40,15 @@ function getDefaultSettings(): SettingsState {
 	const allPanelIds = Object.keys(PANELS) as PanelId[];
 
 	return {
-		enabled: Object.fromEntries(allPanelIds.map((id) => [id, true])) as Record<PanelId, boolean>,
+		enabled: {
+			...(Object.fromEntries(allPanelIds.map((id) => [id, true])) as Record<PanelId, boolean>),
+			printer: false,
+			correlation: false,
+			whales: false,
+			polymarket: false,
+			contracts: false,
+			layoffs: false
+		},
 		order: allPanelIds,
 		sizes: {} as Record<PanelId, { width?: number; height?: number }>,
 		theme: 'dark',

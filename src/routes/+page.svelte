@@ -7,9 +7,10 @@
 		fetchFedNews,
 		fetchGovContracts,
 		fetchLayoffs,
+		fetchMoneyPrinterData,
 		fetchPolymarket,
 		fetchWhaleTransactions,
-		fetchWorldLeaders
+		fetchWorldLeaders,
 	} from '$lib/api';
 	import { Dashboard, Header } from '$lib/components/layout';
 	import { MonitorFormModal, OnboardingModal, SettingsModal } from '$lib/components/modals';
@@ -48,6 +49,7 @@
 	let monitorFormOpen = $state(false);
 	let onboardingOpen = $state(false);
 	let editingMonitor = $state<CustomMonitor | null>(null);
+	let printerData = $state<any>(null);
 
 	// Misc panel data
 	let predictions = $state<Prediction[]>([]);
@@ -115,19 +117,28 @@
 	}
 
 	async function loadFedData() {
-		if (!isPanelVisible('fed')) return;
-		fedIndicators.setLoading(true);
-		fedNews.setLoading(true);
-		try {
-			const [indicatorsData, newsData] = await Promise.all([fetchFedIndicators(), fetchFedNews()]);
-			fedIndicators.setData(indicatorsData);
-			fedNews.setItems(newsData);
-		} catch (error) {
-			console.error('Failed to load Fed data:', error);
-			fedIndicators.setError(String(error));
-			fedNews.setError(String(error));
-		}
-	}
+    if (!isPanelVisible('fed') && !isPanelVisible('printer')) return;
+    
+    fedIndicators.setLoading(true);
+    fedNews.setLoading(true);
+    
+    try {
+        // Add fetchMoneyPrinterData() to the array
+       const [indicatorsData, newsData, printerRes] = await Promise.all([
+            fetchFedIndicators(), 
+            fetchFedNews(),
+            fetchMoneyPrinterData() 
+        ]);
+        
+        fedIndicators.setData(indicatorsData);
+        fedNews.setItems(newsData);
+        printerData = printerRes;
+    } catch (error) {
+        console.error('Failed to load Fed data:', error);
+        fedIndicators.setError(String(error));
+        fedNews.setError(String(error));
+    }
+}
 
 	// Refresh handlers
 	async function handleRefresh() {
@@ -183,9 +194,11 @@
 	onMount(() => {
 		settings.init();
 
-		// Check if first visit
+		// If this is the first visit, silently apply the "Everything" preset
+		// and skip showing the onboarding modal.
 		if (!settings.isOnboardingComplete()) {
-			onboardingOpen = true;
+			settings.applyPreset('everything');
+			onboardingOpen = false;
 		}
 
 		// Load initial data and track as refresh
@@ -226,7 +239,7 @@
 			<!-- Map Panel - Full width -->
 			{#if isPanelVisible('map')}
 				<div class="panel-slot map-slot">
-					<GlobePanel monitors={$monitors.monitors} {layoffs} />
+					<GlobePanel monitors={$monitors.monitors} {layoffs} {printerData} />
 				</div>
 			{/if}
 
@@ -392,8 +405,8 @@
 			<!-- Money Printer Panel -->
 			{#if isPanelVisible('printer')}
 				<div class="panel-slot">
-					<PrinterPanel />
-				</div>
+        			<PrinterPanel data={printerData} /> <!-- Pass the data prop -->
+    			</div>
 			{/if}
 
 			<!-- Custom Monitors (always last) -->

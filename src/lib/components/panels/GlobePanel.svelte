@@ -1,5 +1,8 @@
 <script lang="ts">
+	import { analyzeCorrelations } from '$lib/analysis';
 	import type { Layoff } from '$lib/api';
+	import type { EconomicIndicator } from '$lib/api/fred';
+	import { isFredConfigured } from '$lib/api/fred';
 	import { HeatmapCell, Panel } from '$lib/components/common';
 	import { CACHE_TTLS } from '$lib/config/api';
 	import {
@@ -12,7 +15,15 @@
 		THREAT_COLORS,
 		WEATHER_CODES
 	} from '$lib/config/map';
-	import { commodities, crypto as cryptoStore, indices, sectors, settings } from '$lib/stores';
+	import {
+		allNewsItems,
+		commodities,
+		crypto as cryptoStore,
+		fedIndicators,
+		indices,
+		sectors,
+		settings
+	} from '$lib/stores';
 	import type { CustomMonitor } from '$lib/types';
 	import { onMount } from 'svelte';
 
@@ -32,19 +43,33 @@
 		_destructor(): void;
 	}
 
+	interface MoneyPrinterData {
+		value: number;
+		change: number;
+		changePercent: number;
+		percentOfMax: number;
+	}
+
 	interface Props {
 		monitors?: CustomMonitor[];
 		loading?: boolean;
 		error?: string | null;
 		layoffs?: Layoff[];
+		printerData?: MoneyPrinterData | null;
 	}
 
-	let { monitors = [], loading = false, error = null, layoffs = [] }: Props = $props();
+	let {
+		monitors = [],
+		loading = false,
+		error = null,
+		// layoffs = [],
+		printerData = null
+	}: Props = $props();
 
 	let container: HTMLElement;
 	let myGlobe: GlobeInstance | null = null;
 
-	const INITIAL_VIEW = { lat: 30, lng: 40, altitude: 1.0 };
+	const INITIAL_VIEW = { lat: 30, lng: 40, altitude: 1.3 };
 
 	interface CityConfig {
 		id: string;
@@ -172,6 +197,142 @@
 	const cryptoLoading = $derived($cryptoStore.loading);
 	const cryptoError = $derived($cryptoStore.error);
 
+	const fedState = $derived($fedIndicators);
+	const fedData = $derived(fedState.data);
+	const fedLoading = $derived(fedState.loading);
+	const fedError = $derived(fedState.error);
+
+const fedIndicatorsList = $derived(
+	fedData ? [fedData.fedFundsRate, fedData.cpi, fedData.treasury10Y] : []
+);
+
+const analysis = $derived(analyzeCorrelations($allNewsItems));
+
+const hasFredApiKey = isFredConfigured();
+
+function getAnalysisStyle(item: any, type: string) {
+	switch (type) {
+		case 'pattern': {
+			if (item.level === 'high') return { color: 'rgba(239, 68, 68, 0.18)', tag: '[High]' };
+			if (item.level === 'elevated')
+				return { color: 'rgba(234, 179, 8, 0.18)', tag: '[Elevated]' };
+			if (item.level === 'emerging')
+				return { color: 'rgba(34, 197, 94, 0.18)', tag: '[Emerging]' };
+			return { color: 'rgba(255, 255, 255, 0.02)', tag: '' };
+		}
+
+		case 'momentum': {
+			if (item.momentum === 'surging')
+				return { color: 'rgba(239, 68, 68, 0.18)', tag: '[Surging]' };
+			if (item.momentum === 'rising')
+				return { color: 'rgba(234, 179, 8, 0.18)', tag: '[Rising]' };
+			if (item.momentum === 'stable')
+				return { color: 'rgba(34, 197, 94, 0.18)', tag: '[Stable]' };
+			return { color: 'rgba(255, 255, 255, 0.02)', tag: '' };
+		}
+
+		case 'source': {
+			if (item.level === 'high')
+				return { color: 'rgba(239, 68, 68, 0.18)', tag: '[Widespread]' };
+			if (item.level === 'elevated')
+				return { color: 'rgba(234, 179, 8, 0.18)', tag: '[Growing]' };
+			if (item.level === 'emerging')
+				return { color: 'rgba(34, 197, 94, 0.18)', tag: '[Niche]' };
+			return { color: 'rgba(255, 255, 255, 0.02)', tag: '' };
+		}
+
+		case 'predictive': {
+			if (item.level === 'high')
+				return { color: 'rgba(239, 68, 68, 0.18)', tag: '[High Conf]' };
+			if (item.level === 'medium')
+				return { color: 'rgba(234, 179, 8, 0.18)', tag: '[Med Conf]' };
+			if (item.level === 'low')
+				return { color: 'rgba(34, 197, 94, 0.18)', tag: '[Low Conf]' };
+			return { color: 'rgba(255, 255, 255, 0.02)', tag: '' };
+		}
+
+		default:
+			return { color: 'rgba(255, 255, 255, 0.02)', tag: '' };
+	}
+}
+
+function getFedColor(type: string, value: number | null): string {
+		if (value === null) return 'rgba(255, 255, 255, 0.05)';
+
+		if (type === 'cpi') {
+			if (value > 3.5) return '#ff0000';
+			if (value > 2.5) return '#ffaa00';
+			return '#00cc66';
+		}
+
+		if (type === 'fedFunds') {
+			if (value > 5.0) return '#ff0000';
+			if (value > 4.0) return '#ffaa00';
+			return '#00cc66';
+		}
+
+		if (type === 'treasury10y') {
+			if (value > 4.5) return '#ff0000';
+			if (value > 4.0) return '#ffaa00';
+			return '#00cc66';
+		}
+
+		if (type === 'printer') {
+			if (value > 8.0) return '#ff0000';
+			if (value > 7.0) return '#ffaa00';
+			return '#00cc66';
+		}
+
+		return '#00cc66';
+	}
+
+	function getFedStatusLabel(type: string, value: number | null): string {
+		if (value === null) return 'N/A';
+
+		if (type === 'cpi') {
+			if (value > 3.5) return 'High Inflation';
+			if (value > 2.5) return 'Elevated';
+			return 'Target';
+		}
+
+		if (type === 'fedFunds') {
+			if (value > 5.0) return 'Very Restrictive';
+			if (value > 4.0) return 'Restrictive';
+			return 'Supportive';
+		}
+
+		if (type === 'treasury10y') {
+			if (value > 4.5) return 'High Yield';
+			if (value > 4.0) return 'Elevated';
+			return 'Normal';
+		}
+
+		if (type === 'printer') {
+			if (value > 8.0) return 'Very High';
+			if (value > 7.0) return 'Elevated';
+			return 'Normal';
+		}
+
+		return '';
+	}
+
+	// function getPatternColor(level: string): string {
+	// 	if (level === 'high') return '#ff0000';
+	// 	if (level === 'elevated') return '#ffaa00';
+	// 	return '#00cc66';
+	// }
+
+	function getDirectionArrow(delta: number): string {
+		if (delta > 0) return '↑';
+		if (delta < 0) return '↓';
+		return '→';
+	}
+
+	function truncate(text: string, max: number): string {
+		if (!text) return '';
+		return text.length > max ? `${text.slice(0, max)}…` : text;
+	}
+
 	function getLocalTime(lon: number): string {
 		const now = new Date();
 		const utcHours = now.getUTCHours();
@@ -195,6 +356,16 @@
 
 	function setCachedWeather(key: string, data: WeatherResult): void {
 		weatherCache[key] = { data, timestamp: Date.now() };
+	}
+
+	function formatFedValue(indicator: EconomicIndicator): string {
+		if (indicator.value === null) return '--';
+		return `${indicator.value.toFixed(2)}${indicator.unit}`;
+	}
+
+	function formatPrinterValue(data: MoneyPrinterData | null): string {
+		if (!data) return '--';
+		return `${data.value.toFixed(2)}T`;
 	}
 
 	async function getWeather(lat: number, lon: number): Promise<WeatherResult | null> {
@@ -470,7 +641,7 @@
 
 			<!-- ROW 5: COMMODITIES (Side-by-Side) -->
 			<div class="mini-row">
-				<div class="mini-title">Commodities / VIX</div>
+				<div class="mini-title">Commodities</div>
 				{#if commodityError}
 					<div class="mini-state mini-error">{commodityError}</div>
 				{:else if commodityLoading}
@@ -495,29 +666,158 @@
 				{/if}
 			</div>
 
-			<!-- ROW 6: LAYOFFS -->
+			<!-- ROW 6: FEDERAL RESERVE -->
 			<div class="mini-row">
-				<div class="mini-title">Layoffs Tracker</div>
-				{#if !layoffs || layoffs.length === 0}
-					<div class="mini-state">No recent layoffs data</div>
+				<div class="mini-title">Federal Reserve</div>
+				{#if !hasFredApiKey}
+					<div class="mini-state">Add FRED API key for Fed data</div>
+				{:else if fedError}
+					<div class="mini-state mini-error">{fedError}</div>
+				{:else if fedLoading && fedIndicatorsList.length === 0 && !printerData}
+					<div class="mini-state">Loading Fed data...</div>
+				{:else if fedIndicatorsList.length === 0 && !printerData}
+					<div class="mini-state">No Fed data available</div>
 				{:else}
-					<div class="mini-layoffs-row">
-						{#each layoffs.slice(0, 6) as layoff, i (layoff.company + i)}
-							<div class="mini-layoff-cell">
-								<div class="mini-layoff-header">
-									<span class="mini-layoff-company">{layoff.company}</span>
-									<span class="mini-layoff-count">
-										{layoff.count.toLocaleString()} jobs
+					<div class="mini-fed-row">
+						{#if fedData}
+							<div
+								class="mini-fed-cell"
+								style={`background: ${getFedColor('fedFunds', fedData.fedFundsRate.value)}`}
+							>
+								<span class="mini-fed-label">
+									Fed Funds Rate
+									<span class="mini-fed-tag">
+										{getFedStatusLabel('fedFunds', fedData.fedFundsRate.value)}
 									</span>
-								</div>
-								<div class="mini-layoff-meta">
-									<span class="mini-layoff-title">{layoff.title}</span>
-								</div>
+								</span>
+								<span class="mini-fed-value">{formatFedValue(fedData.fedFundsRate)}</span>
 							</div>
-						{/each}
+							<div
+								class="mini-fed-cell"
+								style={`background: ${getFedColor('cpi', fedData.cpi.value)}`}
+							>
+								<span class="mini-fed-label">
+									CPI Inflation
+									<span class="mini-fed-tag">
+										{getFedStatusLabel('cpi', fedData.cpi.value)}
+									</span>
+								</span>
+								<span class="mini-fed-value">{formatFedValue(fedData.cpi)}</span>
+							</div>
+							<div
+								class="mini-fed-cell"
+								style={`background: ${getFedColor('treasury10y', fedData.treasury10Y.value)}`}
+							>
+								<span class="mini-fed-label">
+									10Y Treasury
+									<span class="mini-fed-tag">
+										{getFedStatusLabel('treasury10y', fedData.treasury10Y.value)}
+									</span>
+								</span>
+								<span class="mini-fed-value">{formatFedValue(fedData.treasury10Y)}</span>
+							</div>
+						{/if}
+						{#if printerData}
+							<div
+								class="mini-fed-cell mini-fed-printer"
+								style={`background: ${getFedColor('printer', printerData.value)}`}
+							>
+								<span class="mini-fed-label">
+									Money Printer
+									<span class="mini-fed-tag">
+										{getFedStatusLabel('printer', printerData.value)}
+									</span>
+								</span>
+								<span class="mini-fed-value">{formatPrinterValue(printerData)}</span>
+							</div>
+						{/if}
 					</div>
 				{/if}
 			</div>
+
+		{#if analysis && analysis.emergingPatterns.length > 0}
+			<div class="mini-row">
+				<div class="mini-title">Emerging Patterns</div>
+				<div class="mini-heatmap-row">
+					{#each analysis.emergingPatterns.slice(0, 6) as pattern (pattern.id)}
+						{@const style = getAnalysisStyle(pattern, 'pattern')}
+						<div class="mini-analysis-cell" style={`background: ${style.color}`}>
+							<span class="mini-analysis-label">
+								{pattern.name}
+								{#if style.tag}
+									<span class="mini-fed-tag">{style.tag}</span>
+								{/if}
+							</span>
+							<span class="mini-analysis-value">{pattern.count}</span>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		{#if analysis && analysis.momentumSignals.length > 0}
+			<div class="mini-row">
+				<div class="mini-title">Momentum Signals</div>
+				<div class="mini-heatmap-row">
+					{#each analysis.momentumSignals.slice(0, 6) as signal (signal.id)}
+						{@const style = getAnalysisStyle(signal, 'momentum')}
+						<div class="mini-analysis-cell" style={`background: ${style.color}`}>
+							<span class="mini-analysis-label">
+								{signal.name}
+								{#if style.tag}
+									<span class="mini-fed-tag">{style.tag}</span>
+								{/if}
+							</span>
+							<span class="mini-analysis-value">
+								{getDirectionArrow(signal.delta)} {signal.current}
+							</span>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		{#if analysis && analysis.crossSourceCorrelations.length > 0}
+			<div class="mini-row">
+				<div class="mini-title">Cross-Source Links</div>
+				<div class="mini-heatmap-row">
+					{#each analysis.crossSourceCorrelations.slice(0, 6) as link (link.id)}
+						{@const style = getAnalysisStyle(link, 'source')}
+						<div class="mini-analysis-cell" style={`background: ${style.color}`}>
+							<span class="mini-analysis-label">
+								{link.name}
+								{#if style.tag}
+									<span class="mini-fed-tag">{style.tag}</span>
+								{/if}
+							</span>
+							<span class="mini-analysis-value">({link.sourceCount})</span>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		{#if analysis && analysis.predictiveSignals.length > 0}
+			<div class="mini-row">
+				<div class="mini-title">Predictive Signals</div>
+				<div class="mini-heatmap-row">
+					{#each analysis.predictiveSignals.slice(0, 6) as signal (signal.id)}
+						{@const style = getAnalysisStyle(signal, 'predictive')}
+						<div class="mini-analysis-cell" style={`background: ${style.color}`}>
+							<span class="mini-analysis-label">
+								{truncate(signal.prediction, 40)}
+								{#if style.tag}
+									<span class="mini-fed-tag">{style.tag}</span>
+								{/if}
+							</span>
+							<span class="mini-analysis-value">
+								Conf: {Math.round(signal.confidence)}%
+							</span>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
 		</div>
 	</div>
 </Panel>
@@ -532,11 +832,16 @@
 	.globe-main {
 		position: relative;
 		width: 100%;
-		height: 400px;
+		height: 518px;
 		background: var(--bg);
 		border-radius: 4px;
 		overflow: hidden;
 	}
+
+.globe-mini-dashboard {
+	padding-top: 0.3rem;
+	padding-bottom: 0.3rem;
+}
 
 	.globe-container {
 		width: 100%;
@@ -616,8 +921,8 @@
 	.mini-row {
 		display: flex;
 		align-items: stretch;
-		gap: 0.4rem;
-		margin-bottom: 0.25rem;
+		gap: 0.5rem;
+	margin-bottom: 0.3rem;
 	}
 
 	.mini-title {
@@ -636,7 +941,7 @@
 	/* --- ROW SCROLL/WRAP CONFIG --- */
 	.mini-weather-row,
 	.mini-heatmap-row,
-	.mini-layoffs-row {
+	.mini-fed-row {
 		display: flex;
 		flex: 1;
 		gap: 0.25rem;
@@ -646,15 +951,14 @@
 	}
 	.mini-weather-row::-webkit-scrollbar,
 	.mini-heatmap-row::-webkit-scrollbar,
-	.mini-layoffs-row::-webkit-scrollbar {
+	.mini-fed-row::-webkit-scrollbar {
 		display: none;
 	}
 
 	/* --- 1. SHARED STRUCTURE (Height & Layout) --- */
 	.mini-weather-cell,
-	.mini-heatmap-row :global(.heatmap-cell),
-	.mini-layoff-cell {
-		height: 44px; /* Consistent height */
+	.mini-heatmap-row :global(.heatmap-cell) {
+		height: 44px;
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
@@ -662,10 +966,10 @@
 	}
 
 	/* --- 2. BACKGROUNDS FOR NON-COLORED CELLS ONLY --- */
-	/* We apply the gray background ONLY to weather and layoffs.
+	/* We apply the gray background ONLY to weather and Fed.
 	   We DO NOT apply it to heatmap-cell, so it keeps its green/red color. */
 	.mini-weather-cell,
-	.mini-layoff-cell {
+	.mini-fed-cell {
 		background: rgba(255, 255, 255, 0.02);
 		border: 1px solid var(--border);
 	}
@@ -699,29 +1003,75 @@
 		margin-top: 0 !important;
 	}
 
-	/* --- LAYOFFS SPECIFICS --- */
-	.mini-layoff-cell {
-		flex: 1 1 140px; 
+	/* --- FED SPECIFICS --- */
+	.mini-fed-cell {
+		flex: 1 1 140px;
 		min-width: 140px;
+		height: 44px;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
 		padding: 0 0.5rem;
-		gap: 0.1rem;
 		font-size: 0.65rem;
+		border-radius: 4px;
+		white-space: nowrap;
+	}
+
+	.mini-analysis-cell {
+		flex: 1 1 160px;
+		min-width: 140px;
+		height: 44px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0 0.5rem;
+		border-radius: 4px;
+		border: 1px solid var(--border);
+		font-size: 0.65rem;
+		color: #ffffff;
+		white-space: nowrap;
+	}
+
+	.mini-analysis-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+		font-weight: 600;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.mini-analysis-value {
+		font-weight: 700;
+		margin-left: 0.25rem;
+	}
+
+	.mini-fed-tag {
+		display: inline-block;
+		margin-left: 0.25rem;
+		padding: 0.05rem 0.25rem;
+		border-radius: 999px;
+		font-size: 0.5rem;
+		background: rgba(0, 0, 0, 0.3);
+		color: #ffffff;
+		text-transform: none;
 	}
 
 	/* Text Styles */
-	.city-header, .city-meta, .mini-layoff-header {
+	.city-header, .city-meta {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
 		gap: 0.25rem;
 	}
 
-	.city-name, .mini-layoff-company {
+	.city-name {
 		font-weight: 600;
 		color: var(--text-primary);
 	}
 
-	.city-time, .mini-layoff-meta {
+	.city-time {
 		font-size: 0.6rem;
 		color: var(--text-secondary);
 	}
@@ -737,10 +1087,16 @@
 		text-align: right;
 	}
 
-	.mini-layoff-count {
+	.mini-fed-label {
 		font-size: 0.6rem;
-		color: var(--danger);
-		font-weight: 600;
+		color: #ffffff;
+		text-transform: uppercase;
+	}
+
+	.mini-fed-value {
+		font-size: 0.75rem;
+		font-weight: 700;
+		color: #ffffff;
 	}
 
 	@media (max-width: 768px) {
@@ -756,7 +1112,7 @@
 
 		.mini-heatmap-row :global(.heatmap-cell),
 		.mini-weather-cell,
-		.mini-layoff-cell {
+		.mini-fed-cell {
 			flex: 0 0 130px;
 		}
 	}
@@ -773,7 +1129,7 @@
 
 		.globe-mini-dashboard {
 			flex: 1;
-			padding-left: 0.75rem;
+			padding: 0 0 0 0;
 			display: flex;
 			flex-direction: column;
 			justify-content: center;
@@ -781,7 +1137,7 @@
 
 		.mini-weather-row,
 		.mini-heatmap-row,
-		.mini-layoffs-row {
+		.mini-fed-row {
 			flex-wrap: nowrap; 
 			overflow-x: auto;
 		}
