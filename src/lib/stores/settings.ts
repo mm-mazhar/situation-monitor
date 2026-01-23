@@ -68,13 +68,22 @@ function loadFromStorage(): Partial<SettingsState> {
 		const theme = localStorage.getItem(STORAGE_KEYS.theme);
 		const tempUnit = localStorage.getItem(STORAGE_KEYS.tempUnit);
 
-		return {
-			enabled: panels ? JSON.parse(panels) : undefined,
-			order: order ? JSON.parse(order) : undefined,
-			sizes: sizes ? JSON.parse(sizes) : undefined,
+		const result: Partial<SettingsState> = {
 			theme: theme === 'light' ? 'light' : 'dark',
 			tempUnit: tempUnit === 'c' ? 'c' : 'f'
 		};
+
+		if (panels) {
+			result.enabled = JSON.parse(panels);
+		}
+		if (order) {
+			result.order = JSON.parse(order);
+		}
+		if (sizes) {
+			result.sizes = JSON.parse(sizes);
+		}
+
+		return result;
 	} catch (e) {
 		console.warn('Failed to load settings from localStorage:', e);
 		return {};
@@ -317,13 +326,15 @@ function createSettingsStore() {
 export const settings = createSettingsStore();
 
 // Derived stores for convenience
-export const enabledPanels = derived(settings, ($settings) =>
-	$settings.order.filter((id) => $settings.enabled[id])
-);
+export const enabledPanels = derived(settings, ($settings) => {
+	const order = Array.isArray($settings.order) ? $settings.order : [];
+	return order.filter((id) => $settings.enabled[id] ?? false);
+});
 
-export const disabledPanels = derived(settings, ($settings) =>
-	$settings.order.filter((id) => !$settings.enabled[id])
-);
+export const disabledPanels = derived(settings, ($settings) => {
+	const order = Array.isArray($settings.order) ? $settings.order : [];
+	return order.filter((id) => !($settings.enabled[id] ?? false));
+});
 
 export const draggablePanels = derived(enabledPanels, ($enabled) =>
 	$enabled.filter((id) => !NON_DRAGGABLE_PANELS.includes(id))
